@@ -19,12 +19,11 @@ beforeEach(() => {
 
   // ResizeObserver isn't in jsdom.
   if (!('ResizeObserver' in globalThis)) {
-    // @ts-expect-error - jsdom polyfill
     globalThis.ResizeObserver = class {
       observe() {}
       unobserve() {}
       disconnect() {}
-    };
+    } as unknown as typeof ResizeObserver;
   }
 });
 

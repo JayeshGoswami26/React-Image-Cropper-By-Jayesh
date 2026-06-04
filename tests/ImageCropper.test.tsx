@@ -38,12 +38,11 @@ beforeEach(() => {
   vi.stubGlobal('Image', MockImage);
 
   if (!('ResizeObserver' in globalThis)) {
-    // @ts-expect-error jsdom polyfill
     globalThis.ResizeObserver = class {
       observe() {}
       unobserve() {}
       disconnect() {}
-    };
+    } as unknown as typeof ResizeObserver;
   }
 
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
