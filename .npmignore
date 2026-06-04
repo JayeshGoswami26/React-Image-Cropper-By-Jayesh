@@ -1,0 +1,20 @@
+# Source & tooling — only ship the built `dist`
+src
+tests
+examples
+.github
+.vscode
+
+# config
+tsconfig.json
+tsup.config.ts
+vitest.config.ts
+.eslintrc.cjs
+.prettierrc
+.gitignore
+*.tsbuildinfo
+
+# misc
+coverage
+plan.md
+.DS_Store

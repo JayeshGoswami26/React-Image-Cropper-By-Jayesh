@@ -1,0 +1,87 @@
+{
+  "name": "react-image-cropper-byjayesh",
+  "version": "1.0.0",
+  "description": "Zero-dependency, SSR-safe React & Next.js image cropper with drag-and-drop dropzone, free/fixed-ratio crop, resize, rotate, flip, zoom, circular crop and a fully themeable modern UI.",
+  "homepage": "https://github.com/JayeshGoswami26/React-Image-Cropper-By-Jayesh#readme",
+  "bugs": {
+    "url": "https://github.com/JayeshGoswami26/React-Image-Cropper-By-Jayesh/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JayeshGoswami26/React-Image-Cropper-By-Jayesh.git"
+  },
+  "license": "MIT",
+  "author": "Jayesh Puri Goswami",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src",
+    "format": "prettier --write .",
+    "prepublishOnly": "npm run build"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/react": "^16.0.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "@vitest/coverage-v8": "^2.0.5",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "jsdom": "^24.1.1",
+    "prettier": "^3.3.3",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsup": "^8.2.4",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5"
+  },
+  "keywords": [
+    "react",
+    "reactjs",
+    "nextjs",
+    "image",
+    "crop",
+    "cropper",
+    "image-cropper",
+    "upload",
+    "dropzone",
+    "drag-and-drop",
+    "circular-crop",
+    "rotate",
+    "flip",
+    "zoom",
+    "typescript",
+    "ssr"
+  ]
+}
