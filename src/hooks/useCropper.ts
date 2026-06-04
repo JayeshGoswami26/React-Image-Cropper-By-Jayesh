@@ -316,6 +316,9 @@ export function useCropper(options: UseCropperOptions = {}): UseCropperReturn {
         containerSize.height,
         zoom,
       ),
+    // `image` is intentional: natural size lives in naturalRef (non-reactive),
+    // so recompute geometry once the loaded image changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [containerSize.width, containerSize.height, zoom, image],
   );
 

@@ -70,7 +70,12 @@ export interface CropperTheme {
   borderRadius: number;
 }
 
-export type AcceptedMime = 'image/png' | 'image/jpeg' | 'image/webp' | (string & {});
+export type AcceptedMime =
+  | 'image/png'
+  | 'image/jpeg'
+  | 'image/webp'
+  // eslint-disable-next-line @typescript-eslint/ban-types -- keep literal autocomplete while allowing any mime string
+  | (string & {});
 
 export type CropperErrorCode =
   | 'FILE_TOO_LARGE'
