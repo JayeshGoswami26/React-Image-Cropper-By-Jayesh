@@ -24,7 +24,10 @@
     }
   },
   "files": [
-    "dist"
+    "dist/index.js",
+    "dist/index.cjs",
+    "dist/index.d.ts",
+    "dist/index.d.cts"
   ],
   "sideEffects": false,
   "scripts": {

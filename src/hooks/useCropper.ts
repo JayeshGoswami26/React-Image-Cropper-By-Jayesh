@@ -139,6 +139,12 @@ export function useCropper(options: UseCropperOptions = {}): UseCropperReturn {
 
   zoomRef.current = zoom;
   aspectRef.current = aspectRatio;
+  // Keep the natural size in sync synchronously (during render) so the layout
+  // draw effect, geometry, and crop math never read a stale/zero value — the
+  // passive image effect runs too late for the first paint after a load.
+  if (image && (naturalRef.current.w !== image.naturalWidth || naturalRef.current.h !== image.naturalHeight)) {
+    naturalRef.current = { w: image.naturalWidth, h: image.naturalHeight };
+  }
 
   // keep config src in sync with the internal source
   useEffect(() => {
@@ -186,12 +192,14 @@ export function useCropper(options: UseCropperOptions = {}): UseCropperReturn {
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [reclampCrop]);
+    // `image` is intentional: the container only mounts once an image exists
+    // (the dropzone is shown otherwise), so re-run to attach + measure it then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reclampCrop, image]);
 
-  // when a new image loads, record natural size and recenter the crop
+  // when a new image loads, recenter the crop (natural size is set in render)
   useEffect(() => {
     if (!image) return;
-    naturalRef.current = { w: image.naturalWidth, h: image.naturalHeight };
     needsCenterRef.current = true;
     reclampCrop();
   }, [image, reclampCrop]);
