@@ -249,6 +249,12 @@ export function useCropper(options: UseCropperOptions = {}): UseCropperReturn {
   if (image && (naturalRef.current.w !== image.naturalWidth || naturalRef.current.h !== image.naturalHeight)) {
     naturalRef.current = { w: image.naturalWidth, h: image.naturalHeight };
   }
+  // Keep the natural size in sync synchronously (during render) so the layout
+  // draw effect, geometry, and crop math never read a stale/zero value — the
+  // passive image effect runs too late for the first paint after a load.
+  if (image && (naturalRef.current.w !== image.naturalWidth || naturalRef.current.h !== image.naturalHeight)) {
+    naturalRef.current = { w: image.naturalWidth, h: image.naturalHeight };
+  }
 
   // keep config src in sync with the internal source
   useEffect(() => {
