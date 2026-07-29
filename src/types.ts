@@ -19,6 +19,20 @@ export interface Bounds {
   height: number;
 }
 
+/** A 2D point / offset in display pixels. */
+export interface Point {
+  x: number;
+  y: number;
+}
+
+/**
+ * How the crop surface behaves:
+ * - `'crop-box'` — the image is fixed and a resizable crop box moves over it.
+ * - `'image'` — the crop frame is fixed (Instagram/avatar style) and the image
+ *   pans and zooms underneath it, always covering the frame.
+ */
+export type CropperMode = 'crop-box' | 'image';
+
 /** The 8 resize handles plus the body-move target. */
 export type CropHandle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'move';
 
@@ -37,6 +51,8 @@ export interface CropperState {
   flipX: boolean;
   flipY: boolean;
   cropArea: CropArea;
+  /** pan offset of the image from the container center (image mode only). */
+  offset: Point;
 }
 
 export interface CropResult {

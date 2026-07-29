@@ -29,6 +29,15 @@ export {
   usePointerDrag,
   type UsePointerDragOptions,
   type DragState,
+  useWheelZoom,
+  type UseWheelZoomOptions,
+  type WheelZoomEvent,
+  usePinchZoom,
+  type UsePinchZoomOptions,
+  type PinchZoomEvent,
+  useDragPan,
+  type UseDragPanOptions,
+  type PanEvent,
 } from './hooks';
 
 // ---- Theme ----
@@ -49,22 +58,28 @@ export {
 export {
   clamp,
   clampCropToImage,
+  clampPanOffset,
   centerCrop,
   applyAspectRatio,
   resizeFromHandle,
   type ResizeOptions,
+  type PanClampOptions,
 } from './utils/cropMath';
 export {
   computeExportGeometry,
   resolveOutputType,
+  resolveOutputSize,
   getCroppedImage,
   type ExportGeometry,
   type ExportGeometryParams,
   type GetCroppedImageParams,
+  type OutputSizeOptions,
 } from './utils/imageExport';
 export {
   drawImageToCanvas,
   computeFitScale,
+  computeCoverScale,
+  computeFrameRect,
   computeImageBounds,
   type DrawImageOptions,
 } from './utils/canvasHelpers';
@@ -79,8 +94,10 @@ export { isBrowser, useIsomorphicLayoutEffect } from './utils/ssr';
 export type {
   CropArea,
   Bounds,
+  Point,
   CropHandle,
   CropShape,
+  CropperMode,
   CropperState,
   CropResult,
   CropperTheme,

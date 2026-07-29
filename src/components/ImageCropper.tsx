@@ -6,6 +6,7 @@ import type {
   AspectRatioOption,
   CropArea,
   CropperError,
+  CropperMode,
   CropperTheme,
   CropResult,
   CropShape,
@@ -21,6 +22,12 @@ export interface ImageCropperProps {
   // --- image source ---
   src?: string;
   // --- crop config ---
+  /**
+   * `'crop-box'` (default) fixes the image and moves a resizable crop box over
+   * it. `'image'` fixes the crop frame and pans/zooms the image underneath,
+   * the way avatar and cover-photo pickers work.
+   */
+  mode?: CropperMode;
   aspectRatio?: number;
   aspectRatioOptions?: AspectRatioOption[];
   cropShape?: CropShape;
@@ -31,6 +38,13 @@ export interface ImageCropperProps {
   maxZoom?: number;
   /** initial rotation in degrees */
   rotation?: number;
+  /** fraction of the surface the fixed frame occupies in `'image'` mode */
+  frameFill?: number;
+  // --- gestures ---
+  /** zoom on wheel / trackpad scroll */
+  wheelZoom?: boolean;
+  /** two-finger pinch-to-zoom on touch */
+  pinchZoom?: boolean;
   // --- dropzone ---
   showDropzone?: boolean;
   accept?: AcceptedMime[];
@@ -38,6 +52,10 @@ export interface ImageCropperProps {
   // --- output ---
   outputType?: OutputType;
   outputQuality?: number;
+  /** exact output width in px; height follows the crop ratio unless also given */
+  outputWidth?: number;
+  /** exact output height in px; width follows the crop ratio unless also given */
+  outputHeight?: number;
   // --- theming ---
   theme?: Partial<CropperTheme>;
   // --- ui toggles ---
@@ -61,6 +79,7 @@ export interface ImageCropperProps {
  */
 export function ImageCropper({
   src,
+  mode = 'crop-box',
   aspectRatio,
   aspectRatioOptions,
   cropShape = 'rect',
@@ -70,11 +89,16 @@ export function ImageCropper({
   minZoom = 1,
   maxZoom = 4,
   rotation = 0,
+  frameFill = 0.9,
+  wheelZoom = true,
+  pinchZoom = true,
   showDropzone = true,
   accept = ['image/png', 'image/jpeg', 'image/webp'],
   maxSizeMB = 10,
   outputType = 'image/png',
   outputQuality = 0.92,
+  outputWidth,
+  outputHeight,
   theme,
   showGrid = true,
   showControls = true,
@@ -88,6 +112,7 @@ export function ImageCropper({
 }: ImageCropperProps) {
   const cropper = useCropper({
     src,
+    mode,
     aspectRatio,
     cropShape,
     minZoom,
@@ -96,8 +121,13 @@ export function ImageCropper({
     initialRotation: rotation,
     minCropWidth,
     minCropHeight,
+    frameFill,
+    wheelZoom,
+    pinchZoom,
     outputType,
     outputQuality,
+    outputWidth,
+    outputHeight,
   });
 
   const [busy, setBusy] = useState(false);
@@ -172,6 +202,7 @@ export function ImageCropper({
             cropArea={cropper.cropArea}
             bounds={cropper.bounds}
             containerSize={cropper.containerSize}
+            mode={mode}
             cropShape={cropShape}
             aspectRatio={cropper.aspectRatio}
             minCropWidth={minCropWidth}

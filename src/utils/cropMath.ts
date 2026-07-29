@@ -1,9 +1,61 @@
-import type { Bounds, CropArea, CropHandle } from '../types';
+import type { Bounds, CropArea, CropHandle, Point } from '../types';
 
 /** Clamp a number into the inclusive [min, max] range. */
 export function clamp(value: number, min: number, max: number): number {
   if (max < min) return min;
   return Math.min(Math.max(value, min), max);
+}
+
+export interface PanClampOptions {
+  /** displayed image size = naturalSize * coverScale * zoom */
+  displayWidth: number;
+  displayHeight: number;
+  /** the fixed crop frame the image must keep covering */
+  frameWidth: number;
+  frameHeight: number;
+  /** degrees */
+  rotation?: number;
+}
+
+/**
+ * Clamp an `'image'`-mode pan offset so the image never uncovers the crop frame.
+ *
+ * The offset is a screen-space translation applied *before* rotation, so the
+ * limits are computed in the image's own frame of reference: rotate the frame
+ * center into image-local space, clamp it against the image's half-extents
+ * (shrunk by the frame's local footprint), then rotate back. Pairs with
+ * `computeCoverScale`, which uses the same rotated-footprint measure — at
+ * `zoom === 1` this pins the constrained axis to exactly 0.
+ */
+export function clampPanOffset(offset: Point, opts: PanClampOptions): Point {
+  const { displayWidth, displayHeight, frameWidth, frameHeight, rotation = 0 } = opts;
+
+  const rad = (rotation * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  // Frame center relative to the image center, rotated into image-local axes.
+  // Screen-space vector is `-offset`; apply R(-rotation) to it.
+  const localX = -offset.x * cos - offset.y * sin;
+  const localY = offset.x * sin - offset.y * cos;
+
+  // The frame's axis-aligned footprint once expressed in image-local axes.
+  const absCos = Math.abs(cos);
+  const absSin = Math.abs(sin);
+  const localFrameW = frameWidth * absCos + frameHeight * absSin;
+  const localFrameH = frameWidth * absSin + frameHeight * absCos;
+
+  const limitX = Math.max(0, (displayWidth - localFrameW) / 2);
+  const limitY = Math.max(0, (displayHeight - localFrameH) / 2);
+
+  const clampedX = clamp(localX, -limitX, limitX);
+  const clampedY = clamp(localY, -limitY, limitY);
+
+  // Back to screen space: negate and apply R(rotation).
+  return {
+    x: -(clampedX * cos - clampedY * sin),
+    y: -(clampedX * sin + clampedY * cos),
+  };
 }
 
 export interface ResizeOptions {

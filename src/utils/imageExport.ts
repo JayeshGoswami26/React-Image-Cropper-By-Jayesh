@@ -11,6 +11,9 @@ export interface ExportGeometryParams {
   /** fitScale * zoom — display px per natural px */
   displayScale: number;
   rotation: number; // degrees
+  /** pan offset of the image center from the container center (image mode) */
+  offsetX?: number;
+  offsetY?: number;
 }
 
 export interface ExportGeometry {
@@ -40,6 +43,8 @@ export function computeExportGeometry(params: ExportGeometryParams): ExportGeome
     containerHeight,
     displayScale,
     rotation,
+    offsetX = 0,
+    offsetY = 0,
   } = params;
 
   const rad = (rotation * Math.PI) / 180;
@@ -51,18 +56,22 @@ export function computeExportGeometry(params: ExportGeometryParams): ExportGeome
 
   const scale = displayScale || 1;
 
-  // crop corner relative to container center, converted to natural px, then
-  // offset by the bbox center (both the display canvas and the bbox canvas show
-  // the image in the same screen orientation, only at different scales).
-  const sx = bboxWidth / 2 + (cropArea.x - containerWidth / 2) / scale;
-  const sy = bboxHeight / 2 + (cropArea.y - containerHeight / 2) / scale;
+  // The image is drawn centered on (containerCenter + offset); the bbox canvas
+  // shows the same screen orientation, only at natural scale and centered.
+  const centerX = containerWidth / 2 + offsetX;
+  const centerY = containerHeight / 2 + offsetY;
+
+  // crop corner relative to that center, converted to natural px, then offset
+  // by the bbox center.
+  const sx = bboxWidth / 2 + (cropArea.x - centerX) / scale;
+  const sy = bboxHeight / 2 + (cropArea.y - centerY) / scale;
   const sw = cropArea.width / scale;
   const sh = cropArea.height / scale;
 
   // natural-space crop (for the consumer): position relative to the un-rotated
   // displayed image top-left.
-  const imgLeft = (containerWidth - naturalWidth * scale) / 2;
-  const imgTop = (containerHeight - naturalHeight * scale) / 2;
+  const imgLeft = centerX - (naturalWidth * scale) / 2;
+  const imgTop = centerY - (naturalHeight * scale) / 2;
   const naturalCrop: CropArea = {
     x: (cropArea.x - imgLeft) / scale,
     y: (cropArea.y - imgTop) / scale,
@@ -78,7 +87,38 @@ export function resolveOutputType(shape: CropShape, outputType: OutputType): Out
   return shape === 'round' ? 'image/png' : outputType;
 }
 
-export interface GetCroppedImageParams extends ExportGeometryParams {
+export interface OutputSizeOptions {
+  /** exact output width in px; height follows the crop ratio unless also given */
+  outputWidth?: number;
+  /** exact output height in px; width follows the crop ratio unless also given */
+  outputHeight?: number;
+}
+
+/**
+ * Resolve the final output pixel size from the crop's natural size.
+ *
+ * One of `outputWidth` / `outputHeight` scales the other proportionally. Giving
+ * both is honoured exactly, which will distort the image unless it matches the
+ * crop's aspect ratio (pair it with a locked `aspectRatio`).
+ */
+export function resolveOutputSize(
+  sourceWidth: number,
+  sourceHeight: number,
+  { outputWidth, outputHeight }: OutputSizeOptions = {},
+): { width: number; height: number } {
+  const srcW = Math.max(1, sourceWidth);
+  const srcH = Math.max(1, sourceHeight);
+
+  const w = outputWidth && outputWidth > 0 ? outputWidth : undefined;
+  const h = outputHeight && outputHeight > 0 ? outputHeight : undefined;
+
+  if (w && h) return { width: Math.round(w), height: Math.round(h) };
+  if (w) return { width: Math.round(w), height: Math.max(1, Math.round((w * srcH) / srcW)) };
+  if (h) return { width: Math.max(1, Math.round((h * srcW) / srcH)), height: Math.round(h) };
+  return { width: Math.round(srcW), height: Math.round(srcH) };
+}
+
+export interface GetCroppedImageParams extends ExportGeometryParams, OutputSizeOptions {
   image: CanvasImageSource;
   flipX: boolean;
   flipY: boolean;
@@ -92,6 +132,36 @@ function createCanvas(width: number, height: number): HTMLCanvasElement {
   canvas.width = Math.max(1, Math.round(width));
   canvas.height = Math.max(1, Math.round(height));
   return canvas;
+}
+
+/**
+ * Downscale in halving steps rather than one big `drawImage`. A single-shot
+ * downscale past ~2x aliases badly outside Chrome, so step down until the
+ * remaining reduction is small enough for the built-in filter to handle well.
+ */
+function downscaleCanvas(
+  source: HTMLCanvasElement,
+  targetWidth: number,
+  targetHeight: number,
+): HTMLCanvasElement {
+  let current = source;
+
+  for (;;) {
+    // `min` with the current size keeps a lopsided target from upscaling an axis.
+    const nextW = Math.min(current.width, Math.max(targetWidth, Math.floor(current.width / 2)));
+    const nextH = Math.min(current.height, Math.max(targetHeight, Math.floor(current.height / 2)));
+    if (nextW <= targetWidth && nextH <= targetHeight) break;
+    if (nextW === current.width && nextH === current.height) break;
+
+    const step = createCanvas(nextW, nextH);
+    const sctx = step.getContext('2d');
+    if (!sctx) break;
+    sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(current, 0, 0, current.width, current.height, 0, 0, step.width, step.height);
+    current = step;
+  }
+
+  return current;
 }
 
 function canvasToBlob(
@@ -114,7 +184,8 @@ export async function getCroppedImage(params: GetCroppedImageParams): Promise<Cr
     throw { code: 'NO_IMAGE', message: 'Cannot export image outside the browser.' };
   }
 
-  const { image, flipX, flipY, cropShape, outputType, outputQuality } = params;
+  const { image, flipX, flipY, cropShape, outputType, outputQuality, outputWidth, outputHeight } =
+    params;
   const geo = computeExportGeometry(params);
   const type = resolveOutputType(cropShape, outputType);
 
@@ -136,25 +207,47 @@ export async function getCroppedImage(params: GetCroppedImageParams): Promise<Cr
     params.naturalHeight,
   );
 
-  // 2) Extract the crop region into the output canvas.
-  const outW = Math.max(1, Math.round(geo.sw));
-  const outH = Math.max(1, Math.round(geo.sh));
-  const out = createCanvas(outW, outH);
-  const octx = out.getContext('2d');
-  if (!octx) {
+  // 2) Extract the crop region at natural resolution.
+  const crop = createCanvas(geo.sw, geo.sh);
+  const cctx = crop.getContext('2d');
+  if (!cctx) {
     throw { code: 'EXPORT_FAILED', message: 'Could not acquire 2D context.' };
   }
+  cctx.imageSmoothingQuality = 'high';
+  cctx.drawImage(bbox, geo.sx, geo.sy, geo.sw, geo.sh, 0, 0, crop.width, crop.height);
 
-  if (cropShape === 'round') {
-    octx.beginPath();
-    octx.ellipse(outW / 2, outH / 2, outW / 2, outH / 2, 0, 0, Math.PI * 2);
-    octx.closePath();
-    octx.clip();
+  // 3) Resize to the requested output size, then mask — the round clip has to
+  //    land on the final pixel grid or the edge would be resampled and fringe.
+  const target = resolveOutputSize(crop.width, crop.height, { outputWidth, outputHeight });
+  const needsResize = target.width !== crop.width || target.height !== crop.height;
+  const isRound = cropShape === 'round';
+
+  let out = crop;
+  if (needsResize || isRound) {
+    const scaled =
+      target.width < crop.width || target.height < crop.height
+        ? downscaleCanvas(crop, target.width, target.height)
+        : crop;
+
+    out = createCanvas(target.width, target.height);
+    const octx = out.getContext('2d');
+    if (!octx) {
+      throw { code: 'EXPORT_FAILED', message: 'Could not acquire 2D context.' };
+    }
+    if (isRound) {
+      octx.beginPath();
+      octx.ellipse(out.width / 2, out.height / 2, out.width / 2, out.height / 2, 0, 0, Math.PI * 2);
+      octx.closePath();
+      octx.clip();
+    }
+    octx.imageSmoothingQuality = 'high';
+    octx.drawImage(scaled, 0, 0, scaled.width, scaled.height, 0, 0, out.width, out.height);
   }
 
-  octx.drawImage(bbox, geo.sx, geo.sy, geo.sw, geo.sh, 0, 0, outW, outH);
+  const outW = out.width;
+  const outH = out.height;
 
-  // 3) Serialize.
+  // 4) Serialize.
   let blob: Blob | null;
   let dataUrl: string;
   try {

@@ -44,6 +44,55 @@ describe('computeExportGeometry - no rotation', () => {
   });
 });
 
+describe('computeExportGeometry - pan offset', () => {
+  const base = {
+    naturalWidth: 1000,
+    naturalHeight: 800,
+    containerWidth: 400,
+    containerHeight: 320,
+    displayScale: 0.4,
+    rotation: 0,
+  };
+
+  it('is unchanged by a zero offset', () => {
+    const g = computeExportGeometry({
+      ...base,
+      cropArea: { x: 0, y: 0, width: 400, height: 320 },
+      offsetX: 0,
+      offsetY: 0,
+    });
+    expect(g.sx).toBeCloseTo(0);
+    expect(g.sy).toBeCloseTo(0);
+  });
+
+  it('shifts the source rect opposite to the pan', () => {
+    // Image dragged 40 display px right -> the crop starts 100 natural px
+    // further left, i.e. off the left edge of the image.
+    const g = computeExportGeometry({
+      ...base,
+      cropArea: { x: 0, y: 0, width: 400, height: 320 },
+      offsetX: 40,
+      offsetY: 0,
+    });
+    expect(g.sx).toBeCloseTo(-100);
+    expect(g.sy).toBeCloseTo(0);
+    expect(g.naturalCrop.x).toBeCloseTo(-100);
+  });
+
+  it('keeps naturalCrop and the source rect in agreement', () => {
+    const g = computeExportGeometry({
+      ...base,
+      cropArea: { x: 100, y: 80, width: 200, height: 160 },
+      offsetX: -20,
+      offsetY: 30,
+    });
+    expect(g.naturalCrop.x).toBeCloseTo(g.sx);
+    expect(g.naturalCrop.y).toBeCloseTo(g.sy);
+    expect(g.naturalCrop.width).toBeCloseTo(500);
+    expect(g.naturalCrop.height).toBeCloseTo(400);
+  });
+});
+
 describe('computeExportGeometry - rotation', () => {
   it('90 deg swaps the bounding box dimensions', () => {
     const g = computeExportGeometry({

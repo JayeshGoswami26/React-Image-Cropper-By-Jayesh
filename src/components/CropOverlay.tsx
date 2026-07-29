@@ -17,6 +17,12 @@ export interface CropOverlayProps {
   showGrid?: boolean;
   showHandles?: boolean;
   disabled?: boolean;
+  /**
+   * When false the crop box is presentational only — no handles, no pointer or
+   * keyboard interaction — so gestures fall through to the surface behind it.
+   * That's what `'image'` mode needs: the frame is fixed, the image moves.
+   */
+  interactive?: boolean;
   onChange: (next: CropArea) => void;
 }
 
@@ -131,9 +137,11 @@ export function CropOverlay({
   showGrid = true,
   showHandles = true,
   disabled = false,
+  interactive = true,
   onChange,
 }: CropOverlayProps) {
   const theme = useTheme();
+  const locked = disabled || !interactive;
   const maskId = useId().replace(/:/g, '');
   const cropRef = useRef<CropArea>(cropArea);
   cropRef.current = cropArea;
@@ -153,7 +161,7 @@ export function CropOverlay({
   );
 
   const { onPointerDown: onBodyPointerDown } = usePointerDrag({
-    disabled,
+    disabled: locked,
     onStart: () => {
       moveStartRef.current = cropRef.current;
     },
@@ -161,7 +169,7 @@ export function CropOverlay({
   });
 
   const onBodyKeyDown = (e: KeyboardEvent) => {
-    if (disabled) return;
+    if (locked) return;
     const d = keyDelta(e);
     if (!d) return;
     e.preventDefault();
@@ -216,8 +224,12 @@ export function CropOverlay({
       {/* crop box: border + grid + body drag + handles */}
       <div
         role="group"
-        aria-label="Crop region. Drag to move; use the handles to resize."
-        tabIndex={disabled ? -1 : 0}
+        aria-label={
+          interactive
+            ? 'Crop region. Drag to move; use the handles to resize.'
+            : 'Crop frame. Drag the image to reposition it.'
+        }
+        tabIndex={locked ? -1 : 0}
         onPointerDown={onBodyPointerDown}
         onKeyDown={onBodyKeyDown}
         style={{
@@ -229,8 +241,8 @@ export function CropOverlay({
           border: `2px solid ${theme.primary}`,
           borderRadius: isRound ? '50%' : 0,
           boxSizing: 'border-box',
-          cursor: disabled ? 'default' : 'move',
-          pointerEvents: disabled ? 'none' : 'auto',
+          cursor: locked ? 'default' : 'move',
+          pointerEvents: locked ? 'none' : 'auto',
           touchAction: 'none',
           boxShadow: '0 0 0 1px rgba(0,0,0,0.25)',
         }}
@@ -245,6 +257,7 @@ export function CropOverlay({
         )}
 
         {showHandles &&
+          interactive &&
           RESIZE_HANDLES.map((handle) => (
             <Handle
               key={handle}

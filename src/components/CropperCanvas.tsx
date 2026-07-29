@@ -1,7 +1,7 @@
 'use client';
 
 import { forwardRef, type CSSProperties } from 'react';
-import type { Bounds, CropArea, CropShape } from '../types';
+import type { Bounds, CropArea, CropperMode, CropShape } from '../types';
 import { CropOverlay } from './CropOverlay';
 import { useTheme } from '../theme/useTheme';
 
@@ -13,6 +13,8 @@ export interface CropperCanvasProps {
   cropArea: CropArea;
   bounds: Bounds;
   containerSize: { width: number; height: number };
+  /** `'image'` fixes the frame and lets the image be dragged underneath it */
+  mode?: CropperMode;
   cropShape?: CropShape;
   aspectRatio?: number;
   minCropWidth?: number;
@@ -39,6 +41,7 @@ export const CropperCanvas = forwardRef<HTMLDivElement, CropperCanvasProps>(
       cropArea,
       bounds,
       containerSize,
+      mode = 'crop-box',
       cropShape = 'rect',
       aspectRatio,
       minCropWidth = 20,
@@ -52,6 +55,7 @@ export const CropperCanvas = forwardRef<HTMLDivElement, CropperCanvasProps>(
       style,
     } = props;
     const theme = useTheme();
+    const isImageMode = mode === 'image';
 
     return (
       <div
@@ -66,6 +70,7 @@ export const CropperCanvas = forwardRef<HTMLDivElement, CropperCanvasProps>(
           borderRadius: theme.borderRadius,
           touchAction: 'none',
           userSelect: 'none',
+          cursor: isImageMode && !disabled ? 'grab' : undefined,
           ...style,
         }}
       >
@@ -81,6 +86,7 @@ export const CropperCanvas = forwardRef<HTMLDivElement, CropperCanvasProps>(
             minCropHeight={minCropHeight}
             showGrid={showGrid}
             showHandles={showHandles}
+            interactive={!isImageMode}
             disabled={disabled}
             onChange={(next) => onCropChange?.(next)}
           />
