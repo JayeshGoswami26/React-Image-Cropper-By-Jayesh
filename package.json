@@ -1,6 +1,6 @@
 {
   "name": "react-image-cropper-byjayesh",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Zero-dependency, SSR-safe React & Next.js image cropper with drag-and-drop dropzone, free/fixed-ratio crop, resize, rotate, flip, zoom, circular crop and a fully themeable modern UI.",
   "homepage": "https://github.com/JayeshGoswami26/React-Image-Cropper-By-Jayesh#readme",
   "bugs": {
